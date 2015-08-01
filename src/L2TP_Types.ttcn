@@ -1,0 +1,812 @@
+/******************************************************************************
+* Copyright (c) 2008, 2015  Ericsson AB
+* All rights reserved. This program and the accompanying materials
+* are made available under the terms of the Eclipse Public License v1.0
+* which accompanies this distribution, and is available at
+* http://www.eclipse.org/legal/epl-v10.html
+*
+* Contributors:
+* Endre Kulcsar
+* Gabor Szalai
+******************************************************************************/
+//
+//  File:     L2TP_Types.ttcn
+//  Rev:      R2A
+//  Prodnr:   CNL 113 603
+//  Reference: RFC 2661
+//
+///////////////////////////////////////////////////////////////////////////////
+
+module L2TP_Types
+{
+   import from General_Types all;
+   
+   external function enc_PDU_L2TP(in PDU_L2TP pdu) return octetstring
+
+   external function dec_PDU_L2TP(in octetstring stream) return PDU_L2TP
+    
+   modulepar
+   {
+     octetstring tsp_L2TP_SharedSecret := '00000000'O; 
+     //This value is needed for hiding of AVPs
+     
+     Random_Padding_Length tsp_Max_Random_Padding_Length := 10;    
+     // Determines the max number of Random additional octets used to obscure length 
+     // of the Attribute Value that is being hidden. See RFC 2661 section 4.3.
+     // Its value is an integer larger than or equal to 0, (Padding value is all zeros)
+   } 
+   
+   type integer Random_Padding_Length (0..infinity);   
+     
+   type integer INT2_BO_LAST (0..65535) with { variant "FIELDLENGTH(16), COMP(nosign), BYTEORDER(last)" };
+   
+   type record AVP_Header
+   { BIT1            mBit,
+     BIT1            hBit,
+     BIT4            reserved,
+     integer         lengthValue, 
+     INT2_BO_LAST    vendorId,   // 0
+     INT2_BO_LAST    attributeType     
+   } with { 
+            variant (mBit,hBit,reserved,lengthValue) "FIELDORDER(msb)";
+            variant (lengthValue)   "BYTEORDER(last)";
+            variant (lengthValue)   "FIELDLENGTH(10)";     
+          } 
+       
+   // AVPs ==============================================================
+   
+   type record MessageTypeAVP
+   {
+     AVP_Header      aVP_Header,  // type 0
+     INT2_BO_LAST    messageTypeValue     
+   } with {
+            variant "PRESENCE(aVP_Header.attributeType = 0)"; 
+            variant (aVP_Header) "LENGTHTO(aVP_Header,messageTypeValue)"; 
+            variant (aVP_Header) "LENGTHINDEX(lengthValue)";
+          }
+
+   type record RandomVectorAVP
+   {
+     AVP_Header     aVP_Header, // type 36
+     octetstring    randomOctetString
+   } with { 
+            variant "PRESENCE(aVP_Header.attributeType = 36)";   
+            variant (aVP_Header) "LENGTHTO(aVP_Header,randomOctetString)"; 
+            variant (aVP_Header) "LENGTHINDEX(lengthValue)";
+         }
+      
+  type record ResultCodeAVP
+  {
+    AVP_Header      aVP_Header,   // type 1
+    INT2_BO_LAST    resultCode, 
+    INT2_BO_LAST    errorCode     optional,
+    charstring      errorMessage  optional
+  } with {
+           variant "PRESENCE(aVP_Header.attributeType = 1)";    
+           variant (aVP_Header) "LENGTHTO(aVP_Header,resultCode,errorCode,errorMessage)"; 
+           variant (aVP_Header) "LENGTHINDEX(lengthValue)";  
+         } 
+           
+  type record  ProtocolVersionAVP
+  {
+    AVP_Header      aVP_Header,   // type 2
+    INT1            ver,     //1
+    INT1            rev      //0 
+  } with {
+            variant "PRESENCE(aVP_Header.attributeType = 2)"; 
+            variant (aVP_Header) "LENGTHTO(aVP_Header,ver,rev)"; 
+            variant (aVP_Header) "LENGTHINDEX(lengthValue)";
+         } 
+         
+  type record  FramingCapabilitiesAVP
+  {
+    AVP_Header      aVP_Header,   // type 3  
+    bitstring       reserved length (30),
+    BIT1            aBit,
+    BIT1            sBit
+  } with { 
+            variant "PRESENCE(aVP_Header.attributeType = 3)";
+            variant (aVP_Header) "LENGTHTO(aVP_Header,reserved,aBit,sBit)"; 
+            variant (aVP_Header) "LENGTHINDEX(lengthValue)";    
+            variant (reserved) "FIELDLENGTH(30)";      
+            variant (reserved,aBit,sBit) "FIELDORDER(msb)";
+         }
+ 
+  type record BearerCapabilitiesAVP 
+  { 
+    AVP_Header      aVP_Header,   // type 4
+    bitstring       reserved length (30),
+    BIT1            aBit,
+    BIT1            dBit     
+  } with {
+            variant "PRESENCE(aVP_Header.attributeType = 4)";
+            variant (aVP_Header) "LENGTHTO(aVP_Header,reserved,aBit,dBit)"; 
+            variant (aVP_Header) "LENGTHINDEX(lengthValue)";     
+            variant (reserved) "FIELDLENGTH(30)";        
+            variant (reserved,aBit,dBit) "FIELDORDER(msb)";  
+         }  
+         
+  type record TieBreakerAVP
+  {
+    AVP_Header      aVP_Header,   // type 5  
+    OCT8            tIEBreakValue             
+  } with {
+            variant "PRESENCE(aVP_Header.attributeType = 5)";   
+            variant (aVP_Header) "LENGTHTO(aVP_Header,tIEBreakValue)"; 
+            variant (aVP_Header) "LENGTHINDEX(lengthValue)";       
+         } 
+         
+  type record FirmwareRevisionAVP
+  {
+    AVP_Header      aVP_Header, // type 6   
+    INT2_BO_LAST    firmwareRevisionValue
+  } with {
+            variant "PRESENCE(aVP_Header.attributeType = 6)";      
+            variant (aVP_Header) "LENGTHTO(aVP_Header,firmwareRevisionValue)"; 
+            variant (aVP_Header) "LENGTHINDEX(lengthValue)";       
+         }  
+         
+  type record HostNameAVP
+  {
+    AVP_Header      aVP_Header, // type 7     
+    charstring      hostNameValue length (1..infinity)  
+  } with {
+            variant "PRESENCE(aVP_Header.attributeType = 7)"; 
+            variant (aVP_Header) "LENGTHTO(aVP_Header,hostNameValue)"; 
+            variant (aVP_Header) "LENGTHINDEX(lengthValue)";       
+         }          
+         
+  type record VendorNameAVP
+  {
+    AVP_Header      aVP_Header, // type 8       
+    charstring      vendorNameValue //length (0..infinity)   
+  } with {
+            variant "PRESENCE(aVP_Header.attributeType = 8)";      
+            variant (aVP_Header) "LENGTHTO(aVP_Header,vendorNameValue)"; 
+            variant (aVP_Header) "LENGTHINDEX(lengthValue)";       
+         }          
+         
+  type record AssignedTunnelIdAVP
+  {
+    AVP_Header      aVP_Header, // type 9   
+    INT2_BO_LAST    assignedTunnelIdValue     
+  } with {
+            variant "PRESENCE(aVP_Header.attributeType = 9)";   
+            variant (aVP_Header) "LENGTHTO(aVP_Header,assignedTunnelIdValue)"; 
+            variant (aVP_Header) "LENGTHINDEX(lengthValue)";       
+         }          
+         
+  type record ReceiveWindowSizeAVP
+  {
+    AVP_Header      aVP_Header, // type 10     
+    INT2_BO_LAST    windowSizeValue    
+  } with {
+            variant "PRESENCE(aVP_Header.attributeType = 10)";   
+            variant (aVP_Header) "LENGTHTO(aVP_Header,windowSizeValue)"; 
+            variant (aVP_Header) "LENGTHINDEX(lengthValue)";       
+         }            
+ 
+  type record ChallengeAVP
+  {
+    AVP_Header      aVP_Header, // type 11      
+    octetstring     challengeValue length (1..infinity)  
+  } with {
+            variant "PRESENCE(aVP_Header.attributeType = 11)";    
+            variant (aVP_Header) "LENGTHTO(aVP_Header,challengeValue)"; 
+            variant (aVP_Header) "LENGTHINDEX(lengthValue)";       
+         }            
+ 
+  type record ChallengeResponseAVP
+  {
+    AVP_Header      aVP_Header, // type 13  
+    OCT16           challengeResponseValue
+  } with { 
+            variant "PRESENCE(aVP_Header.attributeType = 13)";      
+            variant (aVP_Header) "LENGTHTO(aVP_Header,challengeResponseValue)"; 
+            variant (aVP_Header) "LENGTHINDEX(lengthValue)";       
+         } 
+         
+  type record Q931CauseCodeAVP    
+  {
+    AVP_Header      aVP_Header, // type 12    
+    OCT2            causeCode,
+    OCT1            causeMsg,
+    charstring      advisoryMsg optional    
+  } with {
+            variant "PRESENCE(aVP_Header.attributeType = 12)";         
+            variant (aVP_Header) "LENGTHTO(aVP_Header,causeCode,causeMsg,advisoryMsg)"; 
+            variant (aVP_Header) "LENGTHINDEX(lengthValue)";       
+         }      
+           
+  type record AssignedSessionIdAVP 
+  { 
+    AVP_Header      aVP_Header, // type 14     
+    INT2_BO_LAST    assignedSessionIdValue     
+  } with {
+            variant "PRESENCE(aVP_Header.attributeType = 14)"; 
+            variant (aVP_Header) "LENGTHTO(aVP_Header,assignedSessionIdValue)"; 
+            variant (aVP_Header) "LENGTHINDEX(lengthValue)";       
+         }   
+         
+  type record CallSerialNumberAVP
+  {
+    AVP_Header      aVP_Header, // type 15      
+    OCT4            callSerialNumberValue
+  } with {
+            variant "PRESENCE(aVP_Header.attributeType = 15)"; 
+            variant (aVP_Header) "LENGTHTO(aVP_Header,callSerialNumberValue)"; 
+            variant (aVP_Header) "LENGTHINDEX(lengthValue)";       
+         }                 
+                           
+  type record MinimumBPSAVP
+  {
+    AVP_Header      aVP_Header, // type 16        
+    OCT4            mimimumBPSValue
+  } with {
+            variant "PRESENCE(aVP_Header.attributeType = 16)"; 
+            variant (aVP_Header) "LENGTHTO(aVP_Header,mimimumBPSValue)"; 
+            variant (aVP_Header) "LENGTHINDEX(lengthValue)";       
+         }                  
+ 
+  type record MaximumBPSAVP
+  {
+    AVP_Header      aVP_Header, // type 17        
+    OCT4            maximumBPSValue
+  } with { 
+            variant "PRESENCE(aVP_Header.attributeType = 17)";   
+            variant (aVP_Header) "LENGTHTO(aVP_Header,maximumBPSValue)"; 
+            variant (aVP_Header) "LENGTHINDEX(lengthValue)";       
+         }                  
+  
+  type record BearerTypeAVP
+  {
+    AVP_Header      aVP_Header, // type 18       
+    bitstring       reserved length (30),
+    BIT1            aBit,
+    BIT1            dBit       
+  } with { 
+            variant "PRESENCE(aVP_Header.attributeType = 18)";        
+            variant (aVP_Header) "LENGTHTO(aVP_Header,reserved,aBit,dBit)"; 
+            variant (aVP_Header) "LENGTHINDEX(lengthValue)"; 
+            variant (reserved) "FIELDLENGTH(30)";             
+            variant (reserved,aBit,dBit) "FIELDORDER(msb)";       
+         }  
+ 
+  type record FramingTypeAVP
+  {
+    AVP_Header      aVP_Header, // type 19  
+    bitstring       reserved length (30),  
+    BIT1            aBit,
+    BIT1            sBit               
+  } with { 
+            variant "PRESENCE(aVP_Header.attributeType = 19)";
+            variant (aVP_Header) "LENGTHTO(aVP_Header,reserved,aBit,sBit)"; 
+            variant (aVP_Header) "LENGTHINDEX(lengthValue)"; 
+            variant (reserved) "FIELDLENGTH(30)";             
+            variant (reserved,aBit,sBit) "FIELDORDER(msb)";       
+         }  
+  
+  type record CalledNumberAVP 
+  {
+    AVP_Header      aVP_Header, // type 21 
+    charstring      calledNumberValue    
+  } with {
+            variant "PRESENCE(aVP_Header.attributeType = 21)";           
+            variant (aVP_Header) "LENGTHTO(aVP_Header,calledNumberValue)"; 
+            variant (aVP_Header) "LENGTHINDEX(lengthValue)"; 
+         }   
+ 
+  type record CallingNumberAVP 
+  {
+    AVP_Header      aVP_Header, // type 22 
+    charstring      callingNumberValue    
+  } with {
+            variant "PRESENCE(aVP_Header.attributeType = 22)";          
+            variant (aVP_Header) "LENGTHTO(aVP_Header,callingNumberValue)"; 
+            variant (aVP_Header) "LENGTHINDEX(lengthValue)"; 
+         }   
+  
+  type record SUB_AddressAVP
+  {
+    AVP_Header      aVP_Header, // type 23   
+    charstring      sUB_AddressValue       
+  } with { 
+            variant "PRESENCE(aVP_Header.attributeType = 23)";        
+            variant (aVP_Header) "LENGTHTO(aVP_Header,sUB_AddressValue)"; 
+            variant (aVP_Header) "LENGTHINDEX(lengthValue)"; 
+         }  
+ 
+  type record TxConnectSpeedAVP
+  {
+    AVP_Header      aVP_Header, // type 24  
+    OCT4            bPS  
+  } with { 
+            variant "PRESENCE(aVP_Header.attributeType = 24)";  
+            variant (aVP_Header) "LENGTHTO(aVP_Header,bPS)"; 
+            variant (aVP_Header) "LENGTHINDEX(lengthValue)"; 
+         }   
+ 
+  type record  RxConnectSpeedAVP
+  {
+    AVP_Header      aVP_Header, // type 38    
+    OCT4            bPS    
+  } with {
+            variant "PRESENCE(aVP_Header.attributeType = 38)";        
+            variant (aVP_Header) "LENGTHTO(aVP_Header,bPS)"; 
+            variant (aVP_Header) "LENGTHINDEX(lengthValue)"; 
+         }   
+
+  type record PhysicalChannelIdAVP
+  {
+    AVP_Header      aVP_Header, // type 25  
+    OCT4            physicalChannelIdValue  
+  } with { 
+            variant "PRESENCE(aVP_Header.attributeType = 25)";          
+            variant (aVP_Header) "LENGTHTO(aVP_Header,physicalChannelIdValue)"; 
+            variant (aVP_Header) "LENGTHINDEX(lengthValue)"; 
+         }    
+
+  type record PrivateGroupIdAVP
+  { 
+    AVP_Header      aVP_Header, // type 37
+    octetstring     privateGroupIdValue
+  } with { 
+            variant "PRESENCE(aVP_Header.attributeType = 37)";           
+            variant (aVP_Header) "LENGTHTO(aVP_Header,privateGroupIdValue)"; 
+            variant (aVP_Header) "LENGTHINDEX(lengthValue)"; 
+         } 
+         
+  type record SequencingRequiredAVP         
+  { 
+    AVP_Header      aVP_Header // type 39        
+  } with {
+            variant "PRESENCE(aVP_Header.attributeType = 39)";     
+            variant (aVP_Header) "LENGTHTO(aVP_Header)"; 
+            variant (aVP_Header) "LENGTHINDEX(lengthValue)"; 
+         }         
+         
+  type record InitialReceivedLCP_CONFREQ_AVP
+  {
+    AVP_Header      aVP_Header, // type 26 
+    octetstring     lCP_CONFREQ // structure ?
+  } with { 
+            variant "PRESENCE(aVP_Header.attributeType = 26)";
+            variant (aVP_Header) "LENGTHTO(aVP_Header,lCP_CONFREQ)"; 
+            variant (aVP_Header) "LENGTHINDEX(lengthValue)"; 
+         }                 
+         
+  type record LastSentLCP_CONFREQ_AVP
+  {
+    AVP_Header      aVP_Header, // type 27   
+    octetstring     lCP_CONFREQ // structure ?  
+  } with {
+            variant "PRESENCE(aVP_Header.attributeType = 27)";    
+            variant (aVP_Header) "LENGTHTO(aVP_Header,lCP_CONFREQ)"; 
+            variant (aVP_Header) "LENGTHINDEX(lengthValue)"; 
+         } 
+         
+  type record LastReceivedLCP_CONFREQ_AVP
+  {
+    AVP_Header      aVP_Header, // type 28   
+    octetstring     lCP_CONFREQ // structure ?      
+  } with {
+            variant "PRESENCE(aVP_Header.attributeType = 28)";       
+            variant (aVP_Header) "LENGTHTO(aVP_Header,lCP_CONFREQ)"; 
+            variant (aVP_Header) "LENGTHINDEX(lengthValue)"; 
+         }          
+         
+  type record ProxyAuthenTypeAVP
+  {
+    AVP_Header      aVP_Header, // type 29     
+    INT2_BO_LAST    authenTypeValue
+  } with {
+            variant "PRESENCE(aVP_Header.attributeType = 29)";        
+            variant (aVP_Header) "LENGTHTO(aVP_Header,authenTypeValue)"; 
+            variant (aVP_Header) "LENGTHINDEX(lengthValue)"; 
+         }          
+         
+  type record ProxyAuthenNameAVP        
+  {       
+    AVP_Header      aVP_Header, // type 30                                 
+    charstring      authenNameValue    
+  } with { 
+            variant "PRESENCE(aVP_Header.attributeType = 30)";          
+            variant (aVP_Header) "LENGTHTO(aVP_Header,authenNameValue)"; 
+            variant (aVP_Header) "LENGTHINDEX(lengthValue)"; 
+         } 
+         
+  type record ProxyAuthenChallengeAVP
+  {
+    AVP_Header      aVP_Header, // type 31  
+    octetstring     challengeValue length (1..infinity)
+  } with {
+            variant "PRESENCE(aVP_Header.attributeType = 31)";       
+            variant (aVP_Header) "LENGTHTO(aVP_Header,challengeValue)"; 
+            variant (aVP_Header) "LENGTHINDEX(lengthValue)"; 
+         }          
+         
+  type record ProxyAuthenIdAVP
+  {
+    AVP_Header      aVP_Header, // type 32 
+    INT2_BO_LAST    idValue  
+  } with {
+            variant "PRESENCE(aVP_Header.attributeType = 32)";          
+            variant (aVP_Header) "LENGTHTO(aVP_Header,idValue)"; 
+            variant (aVP_Header) "LENGTHINDEX(lengthValue)"; 
+         }          
+                 
+  type record ProxyAuthenResponseAVP
+  {
+    AVP_Header      aVP_Header, // type 33  
+    octetstring     response 
+  } with {
+            variant "PRESENCE(aVP_Header.attributeType = 33)";             
+            variant (aVP_Header) "LENGTHTO(aVP_Header,response)"; 
+            variant (aVP_Header) "LENGTHINDEX(lengthValue)"; 
+         }               
+                          
+  type record CallErrorsAVP
+  {  
+    AVP_Header      aVP_Header, // type 34  
+    OCT2            reserved, // 0
+    OCT4            cRCErrors,
+    OCT4            framingErrors,
+    OCT4            hardwareOverruns,
+    OCT4            bufferOverruns,
+    OCT4            timeoutErrors,
+    OCT4            alignmentErrors   
+  } with { 
+            variant "PRESENCE(aVP_Header.attributeType = 34)";      
+            variant (aVP_Header) "LENGTHTO(aVP_Header,reserved,cRCErrors,framingErrors,
+                                  hardwareOverruns,bufferOverruns,timeoutErrors,alignmentErrors)"; 
+            variant (aVP_Header) "LENGTHINDEX(lengthValue)"; 
+         }   
+          
+  type record ACCM_AVP 
+  {
+    AVP_Header      aVP_Header, // type 35
+    OCT2            reserved,  
+    OCT4            sendACCM,
+    OCT4            receiveACCM 
+  } with {
+            variant "PRESENCE(aVP_Header.attributeType = 35)";       
+            variant (aVP_Header) "LENGTHTO(aVP_Header,reserved,sendACCM,receiveACCM)"; 
+            variant (aVP_Header) "LENGTHINDEX(lengthValue)"; 
+         }  
+         
+
+ // ============================
+  type set of SCCRQ_AVP SCCRQ_AVPs;
+    
+  type union SCCRQ_AVP
+  {
+   ProtocolVersionAVP          protocolVersion,
+   HostNameAVP                 hostName,
+   FramingCapabilitiesAVP      framingCapabilities,
+   AssignedTunnelIdAVP         assignedTunnelId,   
+   BearerCapabilitiesAVP       bearerCapabilities,  //optional,
+   ReceiveWindowSizeAVP        receiveWindowSize,   //optional,
+   ChallengeAVP                challenge,           //optional,
+   TieBreakerAVP               tieBreaker,          //optional,
+   FirmwareRevisionAVP         firmwareRevision,    //optional,
+   VendorNameAVP               vendorName,          //optional 
+   RandomVectorAVP             randomVectorAVP      //optional 
+  }   
+
+  type set of SCCRP_AVP SCCRP_AVPs;
+
+  type union SCCRP_AVP
+  {
+   ProtocolVersionAVP          protocolVersion,
+   FramingCapabilitiesAVP      framingCapabilities,
+   HostNameAVP                 hostName,   
+   AssignedTunnelIdAVP         assignedTunnelId,      
+   BearerCapabilitiesAVP       bearerCapabilities,   //optional,
+   FirmwareRevisionAVP         firmwareRevision,     //optional,   
+   VendorNameAVP               vendorName,           //optional,     
+   ReceiveWindowSizeAVP        receiveWindowSize,    //optional,   
+   ChallengeAVP                challenge,            //optional,   
+   ChallengeResponseAVP        challengeResponse,    //optional 
+   RandomVectorAVP             randomVectorAVP       //optional
+  }
+
+  type set of SCCCN_AVP SCCCN_AVPs;
+
+  type union SCCCN_AVP
+  {
+   ChallengeResponseAVP        challengeResponse,    //optional  
+   RandomVectorAVP             randomVectorAVP       //optional
+  }
+   
+  type set of StopCCN_AVP StopCCN_AVPs; 
+
+  type union StopCCN_AVP
+  {
+   AssignedTunnelIdAVP         assignedTunnelId,   
+   ResultCodeAVP               resultCode,
+   RandomVectorAVP             randomVectorAVP     //optional
+  }
+
+ // type set HELLO_AVPs
+ // {
+ // }
+
+  type set of OCRQ_AVP OCRQ_AVPs;
+
+  type union OCRQ_AVP
+  {
+   AssignedSessionIdAVP        assignedSessionId,   
+   CallSerialNumberAVP         callSerialNumber,
+   MinimumBPSAVP               minimumBPS,
+   MaximumBPSAVP               maximumBPS,  
+   BearerTypeAVP               bearerType,
+   FramingTypeAVP              framingType, 
+   CalledNumberAVP             calledNumber, 
+   SUB_AddressAVP              sUB_Address,     //optional  
+   RandomVectorAVP             randomVector     //optional
+  }
+  
+  type set of OCRP_AVP OCRP_AVPs;   
+
+  type union OCRP_AVP
+  {
+   AssignedSessionIdAVP        assignedSessionId,  
+   PhysicalChannelIdAVP        physicalChannelId, //optional
+   RandomVectorAVP             randomVector       //optional
+  }
+
+  type set of OCCN_AVP OCCN_AVPs; 
+  
+  type union OCCN_AVP
+  {
+   TxConnectSpeedAVP                 txConnectSpeed,
+   FramingTypeAVP                    framingType, 
+   RxConnectSpeedAVP                 rxConnectSpeed, //optional,   
+   SequencingRequiredAVP             sequencingRequired, //optional   
+   RandomVectorAVP                   randomVector      //optional  
+  }
+
+
+  type set of ICRQ_AVP ICRQ_AVPs;
+
+  type union ICRQ_AVP
+  {
+   AssignedSessionIdAVP        assignedSessionId,      
+   CallSerialNumberAVP         callSerialNumber,
+   BearerTypeAVP               bearerType,    //optional,
+   PhysicalChannelIdAVP        physicalChannelId, //optional,
+   CallingNumberAVP            callingNumber, //optional,
+   CalledNumberAVP             calledNumber,  //optional,
+   SUB_AddressAVP              sUB_Address,    //optional 
+   RandomVectorAVP             randomVector    //optional
+  }
+
+
+  type set of ICRP_AVP ICRP_AVPs;
+
+  type union ICRP_AVP
+  {
+   AssignedSessionIdAVP         assignedSessionId,  
+   RandomVectorAVP              randomVector      
+  }
+
+  type set of ICCN_AVP ICCN_AVPs;
+
+  type union ICCN_AVP
+  {
+    TxConnectSpeedAVP                 txConnectSpeed,
+    FramingTypeAVP                    framingType,            
+    InitialReceivedLCP_CONFREQ_AVP    initialReceivedLCP_CONFREQ_AVP,
+    LastSentLCP_CONFREQ_AVP           lastSentLCP_CONFREQ_AVP, //optional,
+    LastReceivedLCP_CONFREQ_AVP       lastReceivedLCP_CONFREQ_AVP, //optional,
+    ProxyAuthenTypeAVP                proxyAuthenType, //optional,
+    ProxyAuthenNameAVP                proxyAuthenName, //optional,
+    ProxyAuthenChallengeAVP           proxyAuthenChallenge, //optional,
+    ProxyAuthenIdAVP                  proxyAuthenId, //optional,
+    ProxyAuthenResponseAVP            proxyAuthenResponse, //optional,
+    PrivateGroupIdAVP                 privateGroupId, //optional,
+    RxConnectSpeedAVP                 rxConnectSpeed, //optional,
+    SequencingRequiredAVP             sequencingRequired, //optional 
+    RandomVectorAVP                   randomVector       //optional  
+  }
+  
+  type set of CDN_AVP CDN_AVPs;
+
+  type union CDN_AVP
+  {
+    ResultCodeAVP               resultCode,   
+    AssignedSessionIdAVP        assignedSessionId, 
+    Q931CauseCodeAVP            q931CauseCode,   //optional 
+    RandomVectorAVP             randomVector  //optional
+  }
+
+  type set of WEN_AVP WEN_AVPs;
+
+  type union WEN_AVP
+  {
+    CallErrorsAVP        callErrors, 
+    RandomVectorAVP      randomVector   //optional
+  }
+  
+  type set of SLI_AVP SLI_AVPs;
+
+  type union SLI_AVP
+  {
+    ACCM_AVP              aCCM,
+    RandomVectorAVP       randomVector   //optional
+  }
+
+
+ // Control Messages ============================
+ 
+ 
+  type record SCCRQ 
+  {  
+    MessageTypeAVP  messageType,   
+    SCCRQ_AVPs      aVPs
+  } with { variant "PRESENCE (messageType.messageTypeValue = 1)"; }; 
+      
+  type record SCCRP 
+  {  
+   MessageTypeAVP  messageType,     
+   SCCRP_AVPs      aVPs
+  } with { variant "PRESENCE (messageType.messageTypeValue = 2)"; };    
+  
+         
+  type record SCCCN 
+  {  
+   MessageTypeAVP  messageType,     
+   SCCCN_AVPs      aVPs
+  } with { variant "PRESENCE (messageType.messageTypeValue = 3)"; };       
+  
+   
+  type record StopCCN 
+  {  
+   MessageTypeAVP  messageType,     
+   StopCCN_AVPs    aVPs 
+  } with { variant "PRESENCE (messageType.messageTypeValue = 4)"; };          
+  
+  
+  type record HELLO  
+  {  
+   MessageTypeAVP  messageType     
+  // HELLO_AVPs    aVPs
+  } with { variant "PRESENCE (messageType.messageTypeValue = 6)"; };       
+  
+   
+  type record OCRQ 
+  {  
+   MessageTypeAVP  messageType,     
+   OCRQ_AVPs       aVPs
+  } with { variant "PRESENCE (messageType.messageTypeValue = 7)"; };          
+  
+   
+  type record OCRP 
+  {  
+   MessageTypeAVP  messageType,     
+   OCRP_AVPs       aVPs 
+  } with { variant "PRESENCE (messageType.messageTypeValue = 8)"; };          
+   
+   
+  type record OCCN  
+  {  
+   MessageTypeAVP  messageType,     
+   OCCN_AVPs       aVPs
+  } with { variant "PRESENCE (messageType.messageTypeValue = 9)"; };         
+  
+   
+  type record ICRQ 
+  {  
+   MessageTypeAVP  messageType,     
+   ICRQ_AVPs       aVPs
+  } with { variant "PRESENCE (messageType.messageTypeValue = 10)"; };     
+  
+    
+  type record ICRP  
+  {  
+   MessageTypeAVP  messageType,     
+   ICRP_AVPs       aVPs
+  } with { variant "PRESENCE (messageType.messageTypeValue = 11)"; };          
+  
+    
+  type record ICCN 
+  {  
+   MessageTypeAVP  messageType,     
+   ICCN_AVPs       aVPs
+  } with { variant "PRESENCE (messageType.messageTypeValue = 12)"; };          
+  
+    
+  type record CDN  
+  {  
+   MessageTypeAVP  messageType,     
+   CDN_AVPs        aVPs
+  } with { variant "PRESENCE (messageType.messageTypeValue = 14)"; };         
+  
+    
+  type record WEN  
+  {  
+   MessageTypeAVP  messageType,     
+   WEN_AVPs        aVPs
+  } with { variant "PRESENCE (messageType.messageTypeValue = 15)"; };         
+  
+  
+  type record SLI 
+  {  
+   MessageTypeAVP  messageType,     
+   SLI_AVPs        aVPs
+  } with { variant "PRESENCE (messageType.messageTypeValue = 16)"; };       
+
+  type record ZLB
+  {
+  }
+  
+ // L2TP Header ============================
+         
+  type record L2TP_Offset   
+  {     
+    INT2_BO_LAST    offsetSize,    
+    octetstring     offsetPad     optional     
+  } with {  variant (offsetSize) "LENGTHTO(offsetPad)";}        
+  
+  
+  type record L2TP_Header
+  {
+    BIT1           pBit, //pBit (priority), 0 in ctrl messages
+    BIT1           oBit, //if oBit is 1 offset field is present, 0 in ctrl messages
+    BIT1           reserved, //'0'B
+    BIT1           sBit, //if sBit is 1 ns and nr fields are present, 1 in ctrl messages
+    BIT2           reserved2, //'0'B
+    BIT1           lBit, //if lBit is 1 lengthValuefield is present, 1 in ctrl messages
+    BIT1           tBit, // type of message (0=dataMessage, 1=controlMessage)  
+    BIT4           ver, //'0010'B
+    BIT4           reserved3, //'0'B
+    INT2_BO_LAST   lengthValue   optional, 
+    INT2_BO_LAST   tunnelId,
+    INT2_BO_LAST   sessionId,
+    INT2_BO_LAST   ns            optional,
+    INT2_BO_LAST   nr            optional,
+    L2TP_Offset    offset        optional    
+  } with {  
+           variant (lengthValue) "PRESENCE(lBit = '1'B)";         
+           variant (ns) "PRESENCE(sBit = '1'B)";
+           variant (nr) "PRESENCE(sBit = '1'B)";
+           variant (offset) "PRESENCE(oBit = '1'B)";       
+         }  
+                 
+ // L2TP PDU ============================  
+ 
+  type union ControlMessage
+  {   
+    SCCRQ             sCCRQ,
+    SCCRP             sCCRP,
+    SCCCN             sCCCN,
+    StopCCN           stopCCN,
+    HELLO             hELLO,
+    OCRQ              oCRQ,
+    OCRP              oCRP,
+    OCCN              oCCN,
+    ICRQ              iCRQ,
+    ICRP              iCRP,
+    ICCN              iCCN,
+    CDN               cDN,
+    WEN               wEN,
+    SLI               sLI,
+    ZLB               zLB       
+  } 
+  
+  type union L2TP_Body
+  {  
+    octetstring      dataMessage,
+    ControlMessage   controlMessage
+  }     
+  
+  type record PDU_L2TP 
+  {
+    L2TP_Header        header,
+    L2TP_Body          body
+  } with {  
+            variant (body)"CROSSTAG(dataMessage,    header.tBit = '0'B;
+                                    controlMessage, header.tBit = '1'B)"
+         } 
+                                  
+} with { encode "RAW"} // end of module
