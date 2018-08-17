@@ -1,0 +1,94 @@
+---
+Author: János Kövesdi
+Version: 155 17-CNL 113 603, Rev. A
+Date: 2013-09-03
+
+---
+= L2TP Protocol Modules for TTCN-3 Toolset with TITAN, Function Specification
+:author: János Kövesdi
+:revnumber: 155 17-CNL 113 603, Rev. A
+:revdate: 2013-09-03
+:toc:
+
+== How to Read This Document
+
+This is the Function Specification for the set of L2TP protocol modules. L2TP protocol modules are developed for the TTCN-3 Toolset with TITAN.
+
+== Scope
+
+The purpose of this document is to specify the content of the L2TP protocol modules. Basic knowledge of TTCN-3 ‎<<_2, ‎[2]>> and TITAN TTCN-3 Test Executor ‎<<_3, ‎[3]>> is valuable when reading this document.
+
+= General
+
+Protocol modules implement the message structures of the related protocol in a formalized way, using the standard specification language TTCN-3. This allows defining of test data (templates) in the TTCN-3 language ‎<<_2, ‎[2]>> and correctly encoding/decoding messages when executing test suites using the Titan TTCN-3 test environment ‎‎<<_3, [3]>>.
+
+Protocol modules are using Titan’s RAW encoding attributes ‎<<_4, ‎[4]>> and hence are usable with the Titan test toolset only.
+
+= Functional Specification
+
+== Protocol Version Implemented
+
+This set of protocol modules implements protocol messages and constants of the L2TP protocol. The modules are based on https://tools.ietf.org/html/rfc2661[RFC 2661] with the modifications specified in <<unimplemented_messages_information_elements_and_constants, Unimplemented Messages, Information Elements and Constants>> and <<protocol-modifications-deviations, Protocol Modifications/Deviations>>.
+
+[[unimplemented_messages_information_elements_and_constants]]
+=== Unimplemented Messages, Information Elements and Constants
+
+None.
+
+[[protocol-modifications-deviations]]
+=== Protocol Modifications/Deviations
+
+None.
+
+[[encoding-decoding-and-other-related-functions]]
+== Encoding/Decoding and Other Related Functions
+
+This product also contains encoding/decoding functions, which assure correct RAW encoding of messages when sent from Titan and correct RAW decoding of messages when received by Titan. Implemented encoding/decoding functions:
+
+[cols=3*, options=header]
+|===
+
+|Name
+|Type of formal parameters
+|Type of return value
+
+|`enc_PDU_L2TP`
+|PDU_L2TP
+|octetstring
+
+|`dec_PDU_L2TP`
+|octetstring
+|PDU_L2TP
+|===
+
+The hiding of AVP attribute values described in section 4.3 of <<_1, ‎[1]>> is implemented. The shared secret can be given as a configuration file parameter.
+
+= Terminology
+
+TITAN TTCN-3 Test Executor (see ‎<<_3, [3]>>).
+
+== Abbreviations
+
+AVP:: Attribute Value Pair
+
+IETF:: Internet Engineering Task Force
+
+L2TP:: Layer Two Tunneling Protocol
+
+TTCN-3:: Testing and Test Control Notation version 3
+
+= References
+
+[[_1]]
+[1] IETF https://tools.ietf.org/html/rfc2661[RFC 2661] +
+Layer Two Tunneling Protocol "L2TP"
+
+[[_2]]
+[2] ETSI ES 201 873-1 v.3.2.1 (2007-02) +
+The Testing and Test Control Notation version 3. Part 1: Core Language
+
+[[_3]]
+[3] User Guide for the TITAN TTCN-3 Test Executor
+
+[[_4]]
+[4] Programmer’s Technical Reference for the TITAN TTCN-3 Test Executor

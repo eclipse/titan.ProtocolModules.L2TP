@@ -1,0 +1,108 @@
+---
+Author: János Kövesdi
+Version: 198 17-CNL 113 603, Rev. A
+Date: 2013-09-03
+
+---
+= L2TP Protocol Modules for TTCN-3 Toolset with TITAN, User Guide
+:author: János Kövesdi
+:revnumber: 198 17-CNL 113 603, Rev. A
+:revdate: 2013-09-03
+:toc:
+
+== About This Document
+
+=== How to Read This Document
+
+This is the User Guide for the L2TP protocol module. The L2TP protocol module is developed for the TTCN-3 Toolset with TITAN. This document should be read together with Function Specification <<_3, [3]>>.
+
+=== Presumed Knowledge
+
+To use this protocol module the knowledge of the TTCN-3 language <<_1, ‎[1]>> and TITAN Test Executor ‎<<_2, [2]>> is essential.
+
+== System Requirements
+
+Protocol modules are a set of TTCN-3 source code files that can be used as part of TTCN-3 test suites only. Hence, protocol modules alone do not put specific requirements on the system used. However in order to compile and execute a TTCN-3 test suite using the set of protocol modules the following system requirements must be satisfied:
+
+* TITAN TTCN-3 Test Executor R7A (1.7.pl0) or higher installed. For installation guide see ‎<<_5, [5]>>.
+
+NOTE: This version of the protocol module is not compatible with TITAN releases earlier than R7A.
+
+Protocol modules implement the message structures of the related protocol in a formalized way, using the standard specification language TTCN-3. This allows defining of test data (templates) in the TTCN-3 language ‎<<_1, [1]>> and correctly encoding/decoding messages when executing test suites using the Titan TTCN-3 test environment ‎<<_2, [2]>>.
+
+Protocol modules are using Titan’s RAW encoding attributes <<_4, ‎[4]>> and hence are usable with the Titan test toolset only.
+
+== Installation
+
+The set of protocol modules can be used in developing TTCN-3 test suites using any text editor. However to make the work more efficient a TTCN-3-enabled text editor is recommended (e.g. nedit, xemacs). Since the L2TP protocol is used as a part of a TTCN-3 test suite, this requires TTCN-3 Test Executor be installed before the module can be compiled and executed together with other parts of the test suite. For more details on the installation of TTCN-3 Test Executor see the relevant section of <<_5, [5]>>.
+
+== Configuration
+
+The hiding of AVP attribute values described in section 4.3 of <<_6, ‎[6]>> is implemented. If the Hidden (H) bit is set in any AVP in an incoming message then the Attribute Value will be unhidden for that AVP by the decoder function. If the Hidden (H) bit is set in an outgoing message then the Attribute Value for that AVP will be hidden by the encoder function. The user can define 2 configuration file parameters to control AVP hiding:
+
+* `tsp_L2TP_SharedSecret` - The shared secret used for hiding AVPs. It is an optional parameter of type octetstring.
+
+The default value is `__'00000000'O__`.
+
+* `tsp_Max_Random_Padding_Length` – The maximum length of padding postfixed to the Attribute Value before hiding to mask the size of the data being hidden. It is an optional parameter of type (non-negative) integer.
+
+Its default value is `_10_`.
+
+NOTE: The actual padding length is randomly generated and this parameter only defines a maximum. The padding value is all zeroes in this implementation.
+
+== _Makefile_
+
+The _Makefile_ has to refer to the OpenSSL installation.
+
+For example: `OPENSSL_DIR = /mnt/TTCN/Tools/openssl-0.9.8e`
+
+It also has to be included in the following statements:
+
+[source]
+CPPFLAGS = -D$(PLATFORM) -I$(TTCN3_DIR)/include -I$(OPENSSL_DIR)/include
+
+and
+[source]
+----
+$(TARGET): $(OBJECTS)
+     $(CXX) $(LDFLAGS) -o $@ $(OBJECTS) \
+     -L$(TTCN3_DIR)/lib -l$(TTCN3_LIB) \
+     -L$(OPENSSL_DIR)/lib -lcrypto $($(PLATFORM)_LIBS)
+----
+
+= Terminology
+
+No specific terminology is used.
+
+= Abbreviations
+
+AVP:: Attribute Value Pair
+
+IETF:: Internet Engineering Task Force
+
+L2TP:: Layer Two Tunneling Protocol
+
+TTCN-3:: Testing and Test Control Notation version 3
+
+= References
+
+[[_1]]
+[1] ETSI ES 201 873-1 v.3.2.1 (2007-02) +
+The Testing and Test Control Notation version 3. Part 1: Core Language
+
+[[_2]]
+[2] User Guide for the TITAN TTCN-3 Test Executor
+
+[[_3]]
+[3] L2TP Protocol Modules for TTCN-3 Toolset with TITAN, Function Specification
+
+[[_4]]
+[4] Programmer’s Technical Reference for the TITAN TTCN-3 Test Executor
+
+[[_5]]
+[5] Installation Guide for the TITAN TTCN-3 Test Executor
+
+[[_6]]
+[6] IETF https://tools.ietf.org/html/rfc2661[RFC 2661] +
+Layer Two Tunneling Protocol "L2TP"
+
